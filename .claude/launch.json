@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "plate",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "plate", "run", "dev"],
+      "port": 3000
+    }
+  ]
+}

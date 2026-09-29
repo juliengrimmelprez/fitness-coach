@@ -1,0 +1,16 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Personal health data and secrets: never commit
+garmin-sync/data/
+.env
+.env.*
+!.env.example
+.garminconnect/
+
+# Node / Next.js
+node_modules/
+.next/
+.vercel/
