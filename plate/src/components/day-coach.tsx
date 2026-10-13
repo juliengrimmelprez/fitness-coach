@@ -11,7 +11,19 @@ import { SLOTS, slotForTime, slotLabel } from "@/lib/slots";
 import type { Goal, Meal, Nutrients, Targets } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-export function DayCoach({ targets, totals, meals, goal }: { targets: Targets; totals: Nutrients; meals: Meal[]; goal: Goal | null }) {
+export function DayCoach({
+  targets,
+  totals,
+  meals,
+  goal,
+  training,
+}: {
+  targets: Targets;
+  totals: Nutrients;
+  meals: Meal[];
+  goal: Goal | null;
+  training?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [advice, setAdvice] = useState<CoachAdvice | null>(null);
@@ -29,6 +41,7 @@ export function DayCoach({ targets, totals, meals, goal }: { targets: Targets; t
       loggedSlots,
       remainingSlots,
       goal,
+      training,
       localTime: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     });
     setLoading(false);

@@ -58,6 +58,47 @@ export function computeTargets(stats: BodyStats): Targets & { maintenance: numbe
   };
 }
 
+/**
+ * A non-training day for someone with ordinary daily movement (~8-10k steps, incl. digestion).
+ * Workouts are then added from Garmin, so they're not counted twice via the activity level.
+ */
+const BASE_DAY_FACTOR = 1.375;
+
+export interface TrainingTargets extends Targets {
+  baseCalories: number;
+  trainingKcal: number;
+}
+
+/**
+ * Daily targets that follow training: (base day + workout calories from Garmin) x goal.
+ * Workout calories are net of what the body burns at rest anyway during that time.
+ * Returns null when the profile lacks body stats (then the stored targets are used).
+ */
+export function trainingTargets(p: Profile, activities: { calories: number | null; duration_min: number | null }[]): TrainingTargets | null {
+  if (!p.sex || !p.age || !p.height_cm || !p.weight_kg || !p.goal) return null;
+  const stats = { sex: p.sex, age: p.age, height_cm: Number(p.height_cm), weight_kg: Number(p.weight_kg) };
+  const restingPerMin = bmr({ ...stats, activity_level: "sedentary", goal: p.goal }) / 1440;
+  const trainingKcal = activities.reduce(
+    (sum, a) => sum + Math.max(0, (Number(a.calories) || 0) - restingPerMin * (Number(a.duration_min) || 0)),
+    0,
+  );
+
+  const goal = GOALS.find((g) => g.value === p.goal)!;
+  const base = bmr({ ...stats, activity_level: "sedentary", goal: p.goal }) * BASE_DAY_FACTOR;
+  const calories = Math.max(1200, (base + trainingKcal) * goal.calorieFactor);
+  const protein_g = goal.proteinPerKg * stats.weight_kg;
+  const fat_g = goal.fatPerKg * stats.weight_kg;
+  return {
+    baseCalories: Math.round(Math.max(1200, base * goal.calorieFactor)),
+    trainingKcal: Math.round(trainingKcal * goal.calorieFactor),
+    calories: Math.round(calories),
+    protein_g: Math.round(protein_g),
+    fat_g: Math.round(fat_g),
+    // Extra training calories go to carbs: they fuel the work.
+    carbs_g: Math.round(Math.max(50, (calories - protein_g * 4 - fat_g * 9) / 4)),
+  };
+}
+
 export function profileTargets(p: Profile): Targets {
   return {
     calories: p.calorie_goal ?? 2000,

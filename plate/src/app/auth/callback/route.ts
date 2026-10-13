@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   if (code) {
     const supabase = await supabaseServer();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(`${origin}/today`);
+    if (!error) return NextResponse.redirect(`${origin}/coach`);
   }
   return NextResponse.redirect(`${origin}/auth?error=callback`);
 }

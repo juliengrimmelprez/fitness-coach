@@ -38,6 +38,12 @@
   --color-protein: var(--protein);
   --color-carbs: var(--carbs);
   --color-fat: var(--fat);
+  --color-series: var(--series);
+  --color-grid: var(--grid);
+  --color-stage-deep: var(--stage-deep);
+  --color-stage-rem: var(--stage-rem);
+  --color-stage-light: var(--stage-light);
+  --color-stage-awake: var(--stage-awake);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -52,6 +58,10 @@
 }
 
 :root {
+  /* Status colors (readiness): fixed in both themes, always shown with an icon + label. */
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-critical: #d03b3b;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -63,6 +73,12 @@
   --protein: oklch(0.6 0.17 255);
   --carbs: oklch(0.72 0.16 70);
   --fat: oklch(0.65 0.19 350);
+  --series: #2a78d6;
+  --grid: #e1e0d9;
+  --stage-deep: #184f95;
+  --stage-rem: #3987e5;
+  --stage-light: #86b6ef;
+  --stage-awake: #c3c2b7;
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -101,6 +117,12 @@
   --protein: oklch(0.72 0.14 255);
   --carbs: oklch(0.8 0.14 75);
   --fat: oklch(0.74 0.16 350);
+  --series: #3987e5;
+  --grid: #2c2c2a;
+  --stage-deep: #9ec5f4;
+  --stage-rem: #5598e7;
+  --stage-light: #256abf;
+  --stage-awake: #52514e;
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);

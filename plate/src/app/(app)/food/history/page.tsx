@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { DayView } from "@/components/day-view";
 import { useProfile } from "@/components/profile-context";
@@ -64,6 +65,9 @@ function History({ today }: { today: string }) {
 
   return (
     <div className="space-y-4">
+      <Link href="/food" className="-mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <ChevronLeft className="size-4" /> Food
+      </Link>
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">
           {month.toLocaleDateString(undefined, { month: "long", year: "numeric" })}

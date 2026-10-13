@@ -1,11 +1,12 @@
-"""Pull recent Garmin data and save it as JSON.
+"""Pull recent Garmin data, save it as JSON, and upload it to Supabase if configured.
 
-Usage:  python sync.py [days]      (default: 30)
+Usage:  python sync.py [days]      (default: 30; the morning job uses 2 = yesterday + today)
 
 Writes:
   data/raw/<date>/<endpoint>.json   untouched Garmin responses (for debugging the mapping)
   data/daily.json                   one cleaned-up record per day
   data/activities.json              one cleaned-up record per workout
+  Supabase garmin_daily / garmin_activities (see supabase_upload.py)
 """
 
 import json
@@ -16,6 +17,7 @@ from typing import Any
 
 from garminconnect import GarminConnectTooManyRequestsError
 
+import supabase_upload
 from common import DATA_DIR, connect
 
 PAUSE_S = 0.4  # be polite to Garmin between calls
@@ -190,6 +192,11 @@ def main() -> None:
     save_json(DATA_DIR / "activities.json", activities)
     coverage_report(days, activities)
     print(f"\nSaved to {DATA_DIR}")
+
+    if supabase_upload.configured():
+        supabase_upload.upload(days, activities)
+    else:
+        print("Supabase not configured (SUPABASE_URL / SUPABASE_SERVICE_KEY / PLATE_USER_ID): skipped upload.")
 
 
 if __name__ == "__main__":

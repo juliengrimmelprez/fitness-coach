@@ -39,6 +39,68 @@ export interface Profile {
   carbs_goal: number | null;
   fat_goal: number | null;
   onboarded_at: string | null;
+  /** Adjust daily calories to Garmin-recorded training (base day + workouts). */
+  training_adjusted?: boolean;
+}
+
+export interface GarminDay {
+  date: string;
+  sleep_min: number | null;
+  deep_sleep_min: number | null;
+  rem_sleep_min: number | null;
+  sleep_score: number | null;
+  hrv_last_night_ms: number | null;
+  hrv_weekly_avg_ms: number | null;
+  hrv_status: string | null;
+  resting_hr: number | null;
+  avg_stress: number | null;
+  body_battery_high: number | null;
+  body_battery_low: number | null;
+  steps: number | null;
+  active_kcal: number | null;
+  total_kcal?: number | null;
+  light_sleep_min?: number | null;
+  awake_min?: number | null;
+  intensity_min_moderate?: number | null;
+  intensity_min_vigorous?: number | null;
+  vo2max?: number | null;
+}
+
+export interface GarminActivity {
+  id: number;
+  name: string | null;
+  type: string | null;
+  start_local: string | null;
+  local_date: string;
+  duration_min: number | null;
+  distance_km: number | null;
+  pace_s_per_km: number | null;
+  avg_hr: number | null;
+  calories: number | null;
+  strength_sets: { exercise: string | null; reps: number | null; weight_kg: number | null }[] | null;
+}
+
+export interface WorkoutSet {
+  weight_kg: number | null;
+  reps: number | null;
+  done: boolean;
+}
+
+export interface WorkoutExercise {
+  id: string; // free-exercise-db id, e.g. "Barbell_Squat"
+  name: string;
+  sets: WorkoutSet[];
+}
+
+export interface Workout {
+  id: string;
+  user_id: string;
+  date: string;
+  name: string;
+  started_at: string;
+  ended_at: string | null;
+  notes: string | null;
+  exercises: WorkoutExercise[];
 }
 
 export interface Meal extends Nutrients {

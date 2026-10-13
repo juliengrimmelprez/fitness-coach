@@ -1,7 +1,7 @@
 "use server";
 
 import { AIError, structuredCall } from "@/lib/ai/claude";
-import { CoachSchema, MealAnalysisSchema, Per100gSchema, type CoachAdvice } from "@/lib/ai/schemas";
+import { BriefSchema, CoachSchema, MealAnalysisSchema, Per100gSchema, type Brief, type CoachAdvice } from "@/lib/ai/schemas";
 import { sumNutrients } from "@/lib/nutrition";
 import { slotLabel } from "@/lib/slots";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -107,6 +107,8 @@ export async function coachRemainingDay(input: {
   loggedSlots: MealSlot[];
   remainingSlots: MealSlot[];
   goal: Goal | null;
+  /** Garmin recap: sleep, HRV, today's workouts. */
+  training?: string;
   localTime: string;
 }): Promise<ActionResult<CoachAdvice>> {
   return run(async () => {
@@ -127,6 +129,7 @@ export async function coachRemainingDay(input: {
       `Remaining (negative = over target): ${gap.calories} kcal, ${gap.protein_g} g protein, ${gap.carbs_g} g carbs, ${gap.fat_g} g fat`,
       `Meals logged: ${input.loggedSlots.map(slotLabel).join(", ") || "none"}`,
       `Meal slots still open: ${input.remainingSlots.map(slotLabel).join(", ") || "none"}`,
+      ...(input.training ? [`Garmin today: ${input.training.slice(0, 600)}`] : []),
     ].join("\n");
 
     return structuredCall({
@@ -135,9 +138,37 @@ export async function coachRemainingDay(input: {
 - The headline is one short line on where the day stands.
 - Tips are concrete and specific to the numbers (e.g. "You still need ~60 g protein, so make dinner protein-heavy").
 - Meal ideas must use only the open meal slots, be realistic everyday foods, and together roughly match the remaining macros. If there are no open slots or the user is already over target, give 0-1 light ideas and say so in the tips.
+- If Garmin data is given, connect advice to it: refuel carbs and protein after hard sessions, and prefer lighter, easy-to-digest food after poor sleep. Targets already include the day's recorded training calories.
 - Keep everything short enough to read on a phone.`,
       effort: "low",
       content: [{ type: "text", text: brief }],
+    });
+  });
+}
+
+// ---------------------------------------------------------------------------
+// dailyBrief: the Coach tab's "today" summary across sleep, movement, food and training
+// ---------------------------------------------------------------------------
+
+export async function dailyBrief(input: { context: string; goal: Goal | null; localTime: string }): Promise<ActionResult<Brief>> {
+  return run(async () => {
+    await requireUser();
+    return structuredCall({
+      schema: BriefSchema,
+      system: `You are a personal coach for someone who does gym, running and soccer and wants to get lean while performing well.
+You get a data summary: Garmin sleep/HRV/resting HR/Body Battery, steps and workouts for the last week, manually logged gym sessions, and food logged vs. targets.
+Write today's brief:
+- Be specific and tie every point to the numbers given; never invent data. If something is missing (e.g. no sleep synced yet), say so briefly.
+- Training plan: balance gym, running and soccer across the week (avoid heavy legs right before or after a hard run or match; follow hard days with easier ones). Scale intensity to recovery.
+- Nutrition: they want to get lean, so keep a modest deficit but fuel hard training days; keep protein high.
+- Friendly, direct, short enough to read on a phone. No medical claims.`,
+      effort: "low",
+      content: [
+        {
+          type: "text",
+          text: `Local time: ${input.localTime}\nGoal: ${input.goal ? GOAL_TEXT[input.goal] : "not set"}\n\n${input.context.slice(0, 6000)}`,
+        },
+      ],
     });
   });
 }

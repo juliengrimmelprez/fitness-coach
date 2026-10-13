@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Plate",
     short_name: "Plate",
     description: "Snap a photo of your meal, get ingredient-level calories and macros.",
-    start_url: "/today",
+    start_url: "/coach",
     display: "standalone",
     background_color: "#ffffff",
     theme_color: "#2f9e5b",

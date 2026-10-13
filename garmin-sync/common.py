@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
 from garminconnect import Garmin, GarminConnectAuthenticationError
 
 # Tokens live in the user's home folder, NOT in the project (which syncs to OneDrive).
@@ -12,6 +13,9 @@ DEFAULT_TOKENSTORE = str(Path.home() / ".garminconnect")
 
 PROJECT_DIR = Path(__file__).resolve().parent
 DATA_DIR = PROJECT_DIR / "data"
+
+# Local runs can keep Supabase settings in garmin-sync/.env (gitignored); GitHub Actions uses secrets.
+load_dotenv(PROJECT_DIR / ".env")
 
 
 def tokenstore() -> str:

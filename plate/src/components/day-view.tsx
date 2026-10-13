@@ -10,15 +10,34 @@ import { MealCard } from "@/components/meal-card";
 import { useProfile } from "@/components/profile-context";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TrainingCard } from "@/components/training-card";
+import { activityLabel, fetchGarminForDate, formatSleep } from "@/lib/garmin";
 import { deleteMeal, fetchMeals, signedPhotoUrls } from "@/lib/meals";
-import { profileTargets, sumNutrients } from "@/lib/nutrition";
+import { profileTargets, sumNutrients, trainingTargets } from "@/lib/nutrition";
 import { SLOTS } from "@/lib/slots";
-import type { Meal } from "@/lib/types";
+import type { GarminActivity, GarminDay, Meal } from "@/lib/types";
+
+/** Plain-text recap of Garmin data for the AI coach. */
+function trainingSummary({ day, activities }: { day: GarminDay | null; activities: GarminActivity[] }): string {
+  const parts: string[] = [];
+  if (day?.sleep_min) parts.push(`Slept ${formatSleep(day.sleep_min)}${day.sleep_score ? ` (score ${day.sleep_score})` : ""}`);
+  if (day?.hrv_status) parts.push(`HRV ${day.hrv_status.toLowerCase()}`);
+  if (day?.body_battery_high) parts.push(`Body Battery peak ${day.body_battery_high}`);
+  for (const a of activities) {
+    parts.push(
+      `${activityLabel(a)}${a.distance_km ? ` ${a.distance_km.toFixed(1)} km` : ""}${a.duration_min ? ` ${Math.round(a.duration_min)} min` : ""}${a.calories ? `, ${Math.round(a.calories)} kcal` : ""}`,
+    );
+  }
+  if (activities.length === 0) parts.push("No workout recorded yet today");
+  return parts.join("; ");
+}
 
 /** Everything for one day: macro header, optional coach, meals grouped by slot, and logging. */
 export function DayView({ date, showCoach, onMealsChanged }: { date: string; showCoach: boolean; onMealsChanged?: () => void }) {
   const { profile } = useProfile();
-  const targets = profileTargets(profile);
+  const [garmin, setGarmin] = useState<{ day: GarminDay | null; activities: GarminActivity[] } | null>(null);
+  const dynamic = profile.training_adjusted !== false && garmin ? trainingTargets(profile, garmin.activities) : null;
+  const targets = dynamic ?? profileTargets(profile);
   const [meals, setMeals] = useState<Meal[] | null>(null);
   const [photos, setPhotos] = useState<Record<string, string>>({});
   const [logOpen, setLogOpen] = useState(false);
@@ -41,6 +60,16 @@ export function DayView({ date, showCoach, onMealsChanged }: { date: string; sho
         toast.error("Couldn't load meals.");
         setMeals([]);
       });
+    return () => {
+      cancelled = true;
+    };
+  }, [date]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchGarminForDate(date)
+      .then((g) => !cancelled && setGarmin(g))
+      .catch(() => !cancelled && setGarmin({ day: null, activities: [] }));
     return () => {
       cancelled = true;
     };
@@ -78,8 +107,15 @@ export function DayView({ date, showCoach, onMealsChanged }: { date: string; sho
 
   return (
     <div className="space-y-4">
-      <MacroHeader targets={targets} totals={totals} />
-      {showCoach && meals && <DayCoach targets={targets} totals={totals} meals={meals} goal={profile.goal} />}
+      <MacroHeader
+        targets={targets}
+        totals={totals}
+        note={dynamic && dynamic.trainingKcal > 0 ? `Includes +${dynamic.trainingKcal} kcal for today's training` : undefined}
+      />
+      {garmin && <TrainingCard day={garmin.day} activities={garmin.activities} isToday={showCoach} />}
+      {showCoach && meals && garmin && (
+        <DayCoach targets={targets} totals={totals} meals={meals} goal={profile.goal} training={trainingSummary(garmin)} />
+      )}
 
       {meals === null ? (
         <div className="space-y-2">

@@ -39,7 +39,7 @@ export default function AuthPage() {
 
   // refresh() re-runs the server layout so it sees the new session cookie.
   const goToApp = () => {
-    router.replace("/today");
+    router.replace("/coach");
     router.refresh();
   };
 

@@ -56,3 +56,22 @@ export const CoachSchema = z.object({
 });
 
 export type CoachAdvice = z.infer<typeof CoachSchema>;
+
+export const BriefSchema = z.object({
+  headline: z.string().describe("One upbeat, specific line summarizing today, max ~12 words"),
+  readiness_note: z.string().describe("1-2 sentences interpreting recovery (sleep, HRV, resting HR) for today"),
+  insights: z
+    .array(
+      z.object({
+        area: z.enum(["sleep", "move", "food", "train"]),
+        text: z.string().describe("One concrete observation tied to the numbers, max ~25 words"),
+      }),
+    )
+    .describe("3-4 insights across different areas, most important first"),
+  plan: z.object({
+    training: z.string().describe("Today's training recommendation: what, how hard, roughly how long"),
+    nutrition: z.string().describe("Today's food focus with rough numbers (kcal, protein)"),
+  }),
+});
+
+export type Brief = z.infer<typeof BriefSchema>;

@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import type { Nutrients, Targets } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-export function MacroHeader({ targets, totals }: { targets: Targets; totals: Nutrients }) {
+export function MacroHeader({ targets, totals, note }: { targets: Targets; totals: Nutrients; note?: string }) {
   const remaining = Math.round(targets.calories - totals.calories);
   return (
     <Card>
@@ -25,6 +25,7 @@ export function MacroHeader({ targets, totals }: { targets: Targets; totals: Nut
           <MacroBar label="Protein" value={totals.protein_g} target={targets.protein_g} color="bg-protein" />
           <MacroBar label="Carbs" value={totals.carbs_g} target={targets.carbs_g} color="bg-carbs" />
           <MacroBar label="Fat" value={totals.fat_g} target={targets.fat_g} color="bg-fat" />
+          {note && <p className="text-[11px] text-primary">{note}</p>}
         </div>
       </CardContent>
     </Card>

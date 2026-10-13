@@ -4,6 +4,6 @@ import { OnboardingForm } from "./onboarding-form";
 
 export default async function OnboardingPage() {
   const { profile } = await getUserAndProfile();
-  if (profile.onboarded_at) redirect("/today");
+  if (profile.onboarded_at) redirect("/coach");
   return <OnboardingForm profile={profile} />;
 }

@@ -154,6 +154,28 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Garmin training</CardTitle>
+          <CardDescription>
+            When on, each day&apos;s target is a base day plus the workout calories Garmin recorded, so harder days get more food.
+            Your activity level and the numbers below are then only used on days without Garmin data.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <label className="flex items-center justify-between gap-3 text-sm">
+            Adjust targets to my training
+            <input
+              type="checkbox"
+              className="size-5 accent-[var(--primary)]"
+              checked={profile.training_adjusted !== false}
+              disabled={saving !== null}
+              onChange={(e) => save("training", { training_adjusted: e.target.checked })}
+            />
+          </label>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Daily targets</CardTitle>
           <CardDescription>Override the calculated numbers if you follow your own plan.</CardDescription>
         </CardHeader>

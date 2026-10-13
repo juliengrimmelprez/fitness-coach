@@ -80,7 +80,7 @@ export function OnboardingForm({ profile }: { profile: Profile }) {
       setSaving(false);
       return;
     }
-    router.replace("/today");
+    router.replace("/coach");
     router.refresh();
   }
 
