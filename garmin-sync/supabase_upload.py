@@ -19,6 +19,19 @@ DAILY_COLUMNS = [
 ]
 
 
+# Postgres integer columns reject JSON like 94.0 (Garmin sends many counts as floats), so round these.
+INT_COLUMNS = {
+    "sleep_min", "deep_sleep_min", "light_sleep_min", "rem_sleep_min", "awake_min", "sleep_score",
+    "resting_hr", "avg_stress", "body_battery_high", "body_battery_low", "body_battery_charged",
+    "body_battery_drained", "steps", "intensity_min_moderate", "intensity_min_vigorous",
+    "pace_s_per_km", "avg_hr", "max_hr",
+}
+
+
+def _ints(row: dict[str, Any]) -> dict[str, Any]:
+    return {k: (round(v) if k in INT_COLUMNS and isinstance(v, (int, float)) else v) for k, v in row.items()}
+
+
 def configured() -> bool:
     return all(os.getenv(k) for k in ("SUPABASE_URL", "SUPABASE_SERVICE_KEY", "PLATE_USER_ID"))
 
@@ -36,7 +49,7 @@ def _upsert(table: str, rows: list[dict[str, Any]], on_conflict: str) -> None:
             "Content-Type": "application/json",
             "Prefer": "resolution=merge-duplicates,return=minimal",
         },
-        json=rows,
+        json=[_ints(r) for r in rows],
         timeout=30,
     )
     if not response.ok:
