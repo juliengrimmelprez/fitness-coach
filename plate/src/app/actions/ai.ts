@@ -46,14 +46,16 @@ If the photo contains no food, return an empty ingredients list with name "No fo
 export async function analyzeMealPhoto(input: { imagePath: string; note?: string }): Promise<ActionResult<MealAnalysis>> {
   return run(async () => {
     const { supabase, user } = await requireUser();
-    if (!input.imagePath.startsWith(`${user.id}/`)) throw new AIError("That photo doesn't belong to you.");
+    if (typeof input.imagePath !== "string" || !input.imagePath.startsWith(`${user.id}/`) || input.imagePath.includes(".."))
+      throw new AIError("That photo doesn't belong to you.");
 
     const { data: blob, error } = await supabase.storage.from("meal-photos").download(input.imagePath);
     if (error || !blob) throw new AIError("Couldn't read the uploaded photo. Try again.");
 
     const mediaType = (["image/jpeg", "image/png", "image/webp", "image/gif"] as const).find((t) => t === blob.type) ?? "image/jpeg";
     const data = Buffer.from(await blob.arrayBuffer()).toString("base64");
-    const note = input.note?.trim();
+    // Cap free text sent to the paid API (server actions can be called with any payload).
+    const note = typeof input.note === "string" ? input.note.trim().slice(0, 500) : undefined;
 
     const result = await structuredCall({
       schema: MealAnalysisSchema,
