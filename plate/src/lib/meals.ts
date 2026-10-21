@@ -45,6 +45,34 @@ export async function fetchDailyCalories(start: string, end: string): Promise<Re
   return byDay;
 }
 
+export interface DayFood {
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  meals: number;
+}
+
+/** Per-day food totals for [start, end] inclusive (for trends, patterns and the weight model). */
+export async function fetchFoodByDay(start: string, end: string): Promise<Record<string, DayFood>> {
+  const { data, error } = await supabaseBrowser()
+    .from("meals")
+    .select("eaten_on, calories, protein_g, carbs_g, fat_g")
+    .gte("eaten_on", start)
+    .lte("eaten_on", end);
+  if (error) throw error;
+  const byDay: Record<string, DayFood> = {};
+  for (const row of data as { eaten_on: string; calories: number; protein_g: number; carbs_g: number; fat_g: number }[]) {
+    const d = (byDay[row.eaten_on] ??= { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0, meals: 0 });
+    d.calories += Number(row.calories);
+    d.protein_g += Number(row.protein_g);
+    d.carbs_g += Number(row.carbs_g);
+    d.fat_g += Number(row.fat_g);
+    d.meals += 1;
+  }
+  return byDay;
+}
+
 export async function uploadPhoto(userId: string, blob: Blob): Promise<string> {
   const path = `${userId}/${crypto.randomUUID()}.jpg`;
   const { error } = await supabaseBrowser().storage.from(BUCKET).upload(path, blob, {

@@ -1,7 +1,7 @@
 "use server";
 
-import { AIError, structuredCall } from "@/lib/ai/claude";
-import { BriefSchema, CoachSchema, MealAnalysisSchema, Per100gSchema, type Brief, type CoachAdvice } from "@/lib/ai/schemas";
+import { AIError, chatCall, structuredCall } from "@/lib/ai/claude";
+import { BriefSchema, CoachSchema, MealAnalysisSchema, Per100gSchema, PlanSchema, ReviewSchema, type Brief, type CoachAdvice, type Plan, type Review } from "@/lib/ai/schemas";
 import { sumNutrients } from "@/lib/nutrition";
 import { slotLabel } from "@/lib/slots";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -169,6 +169,73 @@ Write today's brief:
           text: `Local time: ${input.localTime}\nGoal: ${input.goal ? GOAL_TEXT[input.goal] : "not set"}\n\n${input.context.slice(0, 6000)}`,
         },
       ],
+    });
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Coach: weekly review, weekly training plan, and "Ask the Coach" chat.
+// The client sends a computed data summary (stats, patterns, weight model), not raw tables.
+// ---------------------------------------------------------------------------
+
+const COACH_PERSONA = `You are a personal coach for someone who does gym (an A/B/C split: Push, Pull, Legs+Shoulders), running and soccer, and wants to get lean while performing well.
+You receive a data summary computed by the app: daily Garmin recovery (sleep, HRV, resting HR, Body Battery), steps and calories burned, workouts, food logged vs targets, personal patterns found in their history (with sample sizes), and a weight model comparing energy balance with weigh-ins.
+Rules: tie every claim to the numbers given and never invent data; mention when a pattern rests on few days; be direct, friendly and concise; no medical claims.`;
+
+export async function weeklyReview(input: { context: string; goal: Goal | null }): Promise<ActionResult<Review>> {
+  return run(async () => {
+    await requireUser();
+    return structuredCall({
+      schema: ReviewSchema,
+      system: `${COACH_PERSONA}\nWrite a weekly review comparing the last 7 days with the 7 before. Prioritize what matters most for their goal. "keep" and "change" must be specific and measurable.`,
+      effort: "medium",
+      content: [{ type: "text", text: `Goal: ${input.goal ? GOAL_TEXT[input.goal] : "not set"}\n\n${input.context.slice(0, 12000)}` }],
+    });
+  });
+}
+
+export async function weeklyPlan(input: { context: string; goal: Goal | null; weekDates: string[]; note?: string }): Promise<ActionResult<Plan>> {
+  return run(async () => {
+    await requireUser();
+    return structuredCall({
+      schema: PlanSchema,
+      system: `${COACH_PERSONA}
+Plan the training week. Return exactly one entry per date given, in order.
+- Days already in the past: describe what was actually done (from the data) and keep it.
+- Gym: rotate their A (Push), B (Pull), C (Legs + Shoulders) split, roughly 3-4 sessions a week, continuing from their most recent session; mention 1-2 key lifts with target weights from recent sessions.
+- Running: 1-3 runs (one easy, optionally one longer or tempo) unless recovery is poor.
+- Soccer: place matches/games the user mentions; keep the day before easy and avoid heavy legs (C) the day before or after.
+- Never schedule two hard days in a row; lower intensity when readiness/HRV is trending down. Include at least one rest or mobility day.`,
+      effort: "medium",
+      content: [
+        {
+          type: "text",
+          text: `Goal: ${input.goal ? GOAL_TEXT[input.goal] : "not set"}\nWeek dates: ${input.weekDates.join(", ")}\nUser note: ${input.note?.trim().slice(0, 300) || "none"}\n\n${input.context.slice(0, 12000)}`,
+        },
+      ],
+    });
+  });
+}
+
+export async function askCoach(input: {
+  context: string;
+  goal: Goal | null;
+  messages: { role: "user" | "assistant"; content: string }[];
+}): Promise<ActionResult<string>> {
+  return run(async () => {
+    await requireUser();
+    const messages = input.messages.slice(-12).map((m) => ({ role: m.role, content: m.content.slice(0, 2000) }));
+    if (!messages.length || messages[0].role !== "user") throw new AIError("Ask a question first.");
+    return chatCall({
+      system: `${COACH_PERSONA}
+Answer the user's questions about their training, recovery, food and weight using the data summary below. Keep answers short for a phone (usually 2-5 sentences or a few bullets). Use plain text; simple "- " bullets are fine, no headings or tables.
+
+Goal: ${input.goal ? GOAL_TEXT[input.goal] : "not set"}
+
+DATA SUMMARY
+${input.context.slice(0, 14000)}`,
+      messages,
+      effort: "low",
     });
   });
 }

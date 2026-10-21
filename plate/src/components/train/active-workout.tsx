@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Info, Plus, Timer, Trash2, X } from "lucide-react";
+import { Check, Info, Plus, Timer, Trash2, TrendingUp, X } from "lucide-react";
 import { toast } from "sonner";
 import { ExerciseAnimation } from "@/components/train/exercise-animation";
 import { ExerciseDetail, ExercisePicker } from "@/components/train/exercise-picker";
@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { loadExercises, type Exercise } from "@/lib/exercises";
+import { suggestNext, type Suggestion } from "@/lib/progression";
 import type { Workout, WorkoutExercise, WorkoutSet } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { deleteWorkout, formatSet, lastPerformance, saveWorkout, workoutVolume } from "@/lib/workouts";
@@ -69,10 +70,24 @@ export function ActiveWorkout({
 
   function addExercise(e: Exercise) {
     const last = lastPerformance(history, e.id);
+    const sugg = last ? suggestNext(last.sets, e.equipment) : null;
+    // Pre-fill with the progression suggestion when there is one, else repeat last time.
     const sets: WorkoutSet[] = last
-      ? last.sets.map((s) => ({ weight_kg: s.weight_kg, reps: s.reps, done: false }))
+      ? last.sets.map((s) => ({
+          weight_kg: sugg && sugg.kind !== "more-reps" ? sugg.weight_kg : s.weight_kg,
+          reps: sugg ? sugg.reps : s.reps,
+          done: false,
+        }))
       : [0, 1, 2].map(() => ({ weight_kg: null, reps: null, done: false }));
     setExercises([...w.exercises, { id: e.id, name: e.name, sets }]);
+  }
+
+  function applySuggestion(i: number, s: Suggestion) {
+    const ex = w.exercises[i];
+    patchExercise(i, {
+      ...ex,
+      sets: ex.sets.map((set) => (set.done ? set : { ...set, weight_kg: s.kind === "more-reps" ? set.weight_kg : s.weight_kg, reps: s.reps })),
+    });
   }
 
   function toggleDone(i: number, j: number) {
@@ -130,6 +145,10 @@ export function ActiveWorkout({
       {w.exercises.map((ex, i) => {
         const meta = library.get(ex.id);
         const last = lastPerformance(history, ex.id);
+        const sugg = last ? suggestNext(last.sets, meta?.equipment ?? null) : null;
+        const applied =
+          sugg != null &&
+          ex.sets.filter((s) => !s.done).every((s) => s.reps === sugg.reps && (sugg.kind === "more-reps" || s.weight_kg === sugg.weight_kg));
         return (
           <Card key={`${ex.id}-${i}`} size="sm">
             <CardContent className="space-y-2">
@@ -154,6 +173,20 @@ export function ActiveWorkout({
                   <Trash2 />
                 </Button>
               </div>
+
+              {sugg && (
+                <div className="flex items-center justify-between gap-2 rounded-lg bg-primary/10 px-2.5 py-1.5 text-xs">
+                  <span className="flex items-center gap-1.5">
+                    <TrendingUp className="size-3.5 shrink-0 text-primary" />
+                    {sugg.text}
+                  </span>
+                  {!applied && (
+                    <Button size="xs" variant="outline" onClick={() => applySuggestion(i, sugg)}>
+                      Use
+                    </Button>
+                  )}
+                </div>
+              )}
 
               <div className="grid grid-cols-[1.5rem_1fr_1fr_2rem_1.5rem] items-center gap-1.5 text-xs">
                 <span className="text-center text-muted-foreground">Set</span>

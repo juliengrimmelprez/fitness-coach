@@ -75,3 +75,26 @@ export const BriefSchema = z.object({
 });
 
 export type Brief = z.infer<typeof BriefSchema>;
+
+export const ReviewSchema = z.object({
+  headline: z.string().describe("One line verdict on the week, max ~12 words"),
+  summary: z.string().describe("2-3 sentences: how this week compared to last, citing numbers"),
+  wins: z.array(z.string()).describe("1-3 things that went well, each tied to a number"),
+  keep: z.string().describe("The one habit to keep doing, with why"),
+  change: z.string().describe("The one thing to change next week, concrete and measurable"),
+});
+export type Review = z.infer<typeof ReviewSchema>;
+
+export const PlanSchema = z.object({
+  summary: z.string().describe("1-2 sentences on the week's focus and how it balances gym, running and soccer"),
+  days: z.array(
+    z.object({
+      date: z.string().describe("YYYY-MM-DD"),
+      type: z.enum(["gym", "run", "soccer", "rest", "mobility"]),
+      title: z.string().describe("Short, e.g. 'Gym A: Push' or 'Easy run 6 km'"),
+      details: z.string().describe("What exactly: key lifts/targets, distance/pace, or recovery activity"),
+      intensity: z.enum(["easy", "moderate", "hard"]),
+    }),
+  ),
+});
+export type Plan = z.infer<typeof PlanSchema>;

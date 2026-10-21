@@ -14,3 +14,7 @@ garmin-sync/data/
 node_modules/
 .next/
 .vercel/
+
+# Class documents (not app code)
+*.docx
+*.pdf

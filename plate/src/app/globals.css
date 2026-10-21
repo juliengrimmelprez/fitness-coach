@@ -39,6 +39,7 @@
   --color-carbs: var(--carbs);
   --color-fat: var(--fat);
   --color-series: var(--series);
+  --color-series-2: var(--series-2);
   --color-grid: var(--grid);
   --color-stage-deep: var(--stage-deep);
   --color-stage-rem: var(--stage-rem);
@@ -74,6 +75,7 @@
   --carbs: oklch(0.72 0.16 70);
   --fat: oklch(0.65 0.19 350);
   --series: #2a78d6;
+  --series-2: #eb6834;
   --grid: #e1e0d9;
   --stage-deep: #184f95;
   --stage-rem: #3987e5;
@@ -118,6 +120,7 @@
   --carbs: oklch(0.8 0.14 75);
   --fat: oklch(0.74 0.16 350);
   --series: #3987e5;
+  --series-2: #d95926;
   --grid: #2c2c2a;
   --stage-deep: #9ec5f4;
   --stage-rem: #5598e7;

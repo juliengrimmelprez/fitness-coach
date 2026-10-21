@@ -206,3 +206,105 @@ export function fullDate(date: string) {
   const [y, m, d] = date.split("-").map(Number);
   return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 }
+
+export interface WeightChartPoint {
+  date: string;
+  actual: number | null;
+  trend: number | null;
+  predicted: number | null;
+}
+
+/**
+ * Two series on one kg axis: smoothed scale weight (trend) and the energy-balance prediction,
+ * plus weigh-in dots. Legend + end-of-line labels so identity never relies on color alone.
+ */
+export function WeightChart({ points, height = 150 }: { points: WeightChartPoint[]; height?: number }) {
+  const [active, setActive] = useState<number | null>(null);
+  const values = points.flatMap((p) => [p.actual, p.trend, p.predicted]).filter((v): v is number => v != null);
+  if (values.length < 2) return null;
+  const lo = Math.min(...values);
+  const hi = Math.max(...values);
+  const pad = Math.max(0.3, (hi - lo) * 0.15);
+  const min = lo - pad;
+  const max = hi + pad;
+  const RIGHT = 40; // room for end labels
+  const slot = (W - PAD_X - RIGHT) / Math.max(1, points.length - 1);
+  const x = (i: number) => PAD_X + slot * i;
+  const y = (v: number) => height - ((v - min) / (max - min)) * height;
+  const line = (key: "trend" | "predicted") => {
+    let d = "";
+    points.forEach((p, i) => {
+      const val = p[key];
+      if (val == null) return;
+      d += `${d ? "L" : "M"}${x(i)},${y(val)} `;
+    });
+    return d;
+  };
+  const lastIdx = (key: "trend" | "predicted") => {
+    for (let i = points.length - 1; i >= 0; i--) if (points[i][key] != null) return i;
+    return -1;
+  };
+  const shown = active ?? points.length - 1;
+  const p = points[shown];
+  const t = lastIdx("trend");
+  const pr = lastIdx("predicted");
+  const ticks = [min + pad, (min + max) / 2, max - pad];
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5">
+          <span className="h-0.5 w-4 rounded bg-series" /> Scale trend
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-0.5 w-4 rounded border-t-2 border-dashed border-series-2" /> Predicted from calories
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="size-2 rounded-full border-2 border-series" /> Weigh-in
+        </span>
+      </div>
+      <p className="text-xs text-muted-foreground tabular-nums">
+        {fullDate(p.date)} ·{" "}
+        <span className="text-foreground">
+          {p.actual != null ? `weighed ${p.actual.toFixed(1)} kg · ` : ""}
+          {p.trend != null ? `trend ${p.trend.toFixed(1)}` : "no trend yet"}
+          {p.predicted != null ? ` · predicted ${p.predicted.toFixed(1)}` : ""}
+        </span>
+      </p>
+      <svg viewBox={`0 0 ${W} ${height + 16}`} className="w-full overflow-visible" role="img" aria-label="Weight trend vs prediction" onMouseLeave={() => setActive(null)}>
+        {ticks.map((tv) => (
+          <g key={tv}>
+            <line x1={0} x2={W - RIGHT} y1={y(tv)} y2={y(tv)} className="stroke-grid" strokeWidth={1} />
+            <text x={0} y={y(tv) - 2} className="fill-muted-foreground text-[9px]">
+              {tv.toFixed(1)}
+            </text>
+          </g>
+        ))}
+        {active != null && <line x1={x(shown)} x2={x(shown)} y1={0} y2={height} className="stroke-muted-foreground/40" strokeWidth={1} />}
+        <path d={line("predicted")} fill="none" strokeWidth={2} strokeDasharray="5 4" strokeLinecap="round" className="stroke-series-2" />
+        <path d={line("trend")} fill="none" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" className="stroke-series" />
+        {points.map((pt, i) =>
+          pt.actual != null ? <circle key={pt.date} cx={x(i)} cy={y(pt.actual)} r={3.5} strokeWidth={2} className="fill-card stroke-series" /> : null,
+        )}
+        {t >= 0 && (
+          <text x={x(t) + 4} y={y(points[t].trend!) + 3} className="fill-foreground text-[9px] font-medium">
+            {points[t].trend!.toFixed(1)}
+          </text>
+        )}
+        {pr >= 0 && (
+          <text x={x(pr) + 4} y={y(points[pr].predicted!) + (pr === t && Math.abs(y(points[pr].predicted!) - y(points[t].trend!)) < 10 ? 13 : 3)} className="fill-muted-foreground text-[9px]">
+            {points[pr].predicted!.toFixed(1)}
+          </text>
+        )}
+        {points.map((pt, i) => (
+          <rect key={`hit-${pt.date}`} x={x(i) - slot / 2} y={0} width={Math.max(slot, 6)} height={height + 16} fill="transparent" onMouseEnter={() => setActive(i)} onClick={() => setActive(i)} />
+        ))}
+        {[0, Math.floor(points.length / 2), points.length - 1].map((i) => (
+          <text key={`x-${i}`} x={x(i)} y={height + 12} textAnchor={i === 0 ? "start" : i === points.length - 1 ? "end" : "middle"} className="fill-muted-foreground text-[9px]">
+            {fullDate(points[i].date)}
+          </text>
+        ))}
+      </svg>
+    </div>
+  );
+}
